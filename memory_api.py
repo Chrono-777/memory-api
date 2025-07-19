@@ -1,31 +1,46 @@
-from datetime import datetime
-from typing import List
-import sqlite3
 from fastapi import FastAPI, HTTPException
+import sqlite3
+from datetime import datetime
 from pydantic import BaseModel
+import traceback
 
 DB_PATH = "/tmp/memory.db"
+
+app = FastAPI()
 
 class MemoryRecord(BaseModel):
     user_id: str
     message: str
 
-def init_db(db_path: str = DB_PATH) -> None:
-    conn = sqlite3.connect(db_path)
-    with conn:
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS memories (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id TEXT NOT NULL,
-                timestamp TEXT NOT NULL,
-                message TEXT NOT NULL
-            )
-        """)
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS memories (id INTEGER PRIMARY KEY, user_id TEXT, timestamp TEXT, message TEXT)"
+    )
     conn.close()
 
-def add_memory(user_id: str, message: str, db_path: str = DB_PATH) -> None:
-    conn = sqlite3.connect(db_path)
-    with conn:
+@app.get("/")
+async def root():
+    return {"message": "Hello from FastAPI on Vercel!"}
+
+@app.post("/store_memory")
+async def store_memory(record: MemoryRecord):
+    try:
+        conn = sqlite3.connect(DB_PATH)
         conn.execute(
             "INSERT INTO memories (user_id, timestamp, message) VALUES (?, ?, ?)",
-            (user_id_
+            (record.user_id, datetime.utcnow().isoformat(), record.message),
+        )
+        conn.commit()
+        conn.close()
+        return {"status": "success"}
+    except Exception as e:
+        error = traceback.format_exc()
+        raise HTTPException(status_code=500, detail=error)
+
+@app.get("/get_memory")
+async def get_memory(user_id: str):
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.execute(
+            "SELECT timestamp, m
