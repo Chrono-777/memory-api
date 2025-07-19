@@ -1,0 +1,16 @@
+
+
+{
+  "builds": [
+    {
+      "src": "memory_api.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "memory_api.py"
+    }
+  ]
+}
